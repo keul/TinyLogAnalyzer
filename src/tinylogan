@@ -8,19 +8,52 @@ import sys
 import re
 import optparse
 
+from datetime import datetime, date, timedelta
+
 PATTERN = r""".*?\[(?P<date>.*?)\:(?P<time>.*?)\] "(?:GET|POST) (?P<url>.*?)(?:\?.*?)? HTTP\/.*?" (?P<code>\d\d\d).*(?P<sec>\d+)\/(?P<micros>\d+)"""
 logLine = re.compile(PATTERN, re.I)
 
-KEEP_TOTAL = 50
-KEEP_AVERAGE = 50
+RECORD_TO_KEEP = 50
+
+version = "0.1.0"
+description = "Simple bash utility for analyse HTTP access log with enabled response time"
+
+
+MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Jun', 'Jul', 'Aug', 'Sep' 'Oct', 'Nov' 'Dec']
 
 def numeric_compare_total(x, y):
     return x['micros'] - y['micros']
 
+
 def numeric_compare_average(x, y):
     return x['average'] - y['average']
 
-def main(logfile):
+
+def str2date(st):
+    dd, mmm, yyyy = st.split('/')
+    return date(int(yyyy), MONTHS.index(mmm)+1, int(dd))
+
+
+def str2datetime(st):
+    """string date in format dd/Mon/aaaa:hh:mm:ss
+    11/Apr/2011:16:06:10
+    """
+    dd, mmm, yyyy, hh, mm, ss = st[:2], st[3:6], st[7:11], st[12:14], st[15:17], st[18:20]
+    return datetime(int(yyyy), MONTHS.index(mmm)+1, int(dd), int(hh), int(mm), int(ss))
+
+
+def parseDate(st):
+    if st=='today':
+        return date.today()
+    elif st=='yesterday':
+        return date.today() - timedelta(days=1)
+    elif st=='tomorrow':
+        return date.today() + timedelta(days=1)
+    # dd/Mmm/aaaa
+    return str2date(st)
+
+
+def main(options, logfile):
     log = open(logfile)
     
     lncount = 0
@@ -30,6 +63,7 @@ def main(logfile):
     lastProcessedDate = None
     lastProcessedTime = None
 
+    first = True
     for l in log:
         lncount+=1
                 
@@ -38,12 +72,33 @@ def main(logfile):
             continue
 
         lineData = matches.groupdict()
+        ref_date = str2date(lineData['date'])
+        url = lineData['url']
+                
+        if options.start_date:
+            start_date = parseDate(options.start_date)
+            if ref_date<start_date:
+                continue
+
+        if options.end_date:
+            end_date = parseDate(options.end_date)
+            if ref_date>end_date:
+                continue
+
+        stop = False
+        for filter in options.filters:
+            if re.search(filter, url, re.IGNORECASE)==None:
+                stop = True
+        if stop:
+            continue
 
         lastProcessedDate = lineData.get('date')
         lastProcessedTime = lineData.get('time')
         
-        if lncount==1:
+        if first:
             print "Starting from %s:%s" % (lastProcessedDate, lastProcessedTime)
+            firstDateTime = str2datetime("%s:%s" % (lastProcessedDate, lastProcessedTime))
+            first = False
         
         # {'url': '/URL', 'sec': '7', 'code': '200', 'micros': '7124818'}
         url = lineData['url']
@@ -61,28 +116,35 @@ def main(logfile):
         except ValueError:
             topTotal.append(registry[url])
             topTotal.sort(numeric_compare_total, reverse=True)
-            topTotal = topTotal[:KEEP_TOTAL]
+            topTotal = topTotal[:options.size]
 
         try:
             topAverage.index(registry[url])
         except ValueError:
             topAverage.append(registry[url])
             topAverage.sort(numeric_compare_average, reverse=True)
-            topAverage = topAverage[:KEEP_AVERAGE]
+            topAverage = topAverage[:options.size]
+
+    log.close()
+    lastDateTime = str2datetime("%s:%s" % (lastProcessedDate, lastProcessedTime))
 
     print "Ending at %s:%s" % (lastProcessedDate, lastProcessedTime)
-    
-    log.close()
+    td_diff = lastDateTime-firstDateTime
+    diff_seconds = (td_diff.microseconds + (td_diff.seconds + td_diff.days * 24 * 3600) * 10**6) / 10**6
+    print "Timedelta is %s (%s seconds)" % (td_diff, diff_seconds) 
+    print ""
 
     print "Top total time"
     cnt = 0
     for x in topTotal:
         cnt+=1
-        print "  %04d - %s %0.3f (%d times, average %0.3f)" % (cnt,
+        print "  %04d - %s %0.3f (%d times, average %0.3f, %0.2f%% of the total)" % (
+                                                               cnt,
                                                                x['url'], 
                                                                float(x['micros'])/(1000*1000),
                                                                x['times'],
                                                                float(x['micros'])/x['times']/(1000*1000),
+                                                               (float(x['micros'])/(1000*1000))*100/float(diff_seconds),
                                                                )
     print ""
     print "Top average time"
@@ -98,4 +160,25 @@ def main(logfile):
 
 if __name__ == '__main__':
     
-    main(sys.argv[1])
+    usage = "usage: %prog [options] logfile"
+    p = optparse.OptionParser(usage=usage, version="%prog " + version, description=description,
+                              prog="tinylogan")
+    p.remove_option("--help")
+    p.add_option('--help', '-h', action="store_true", default=False, help='show this help message and exit')
+    p.add_option('--size', '-s', type="int", dest="size", default=RECORD_TO_KEEP,
+                 help="choose the number of record to store in every log")
+    p.add_option('--start-date', dest="start_date", default=None,
+                 help="date where to start analyze and record")
+    p.add_option('--end-date', dest="end_date", default=None,
+                 help="date where to end analyze and record")
+    p.add_option('--filter', '-f', dest="filters", default=[], action="append", metavar="FILTER",
+                 help="a regexp expression that all URLs must match of will be discarded. Can be called multiple times")
+
+    args = sys.argv[1:]
+    options, arguments = p.parse_args(args)
+    
+    if options.help or not arguments:
+        p.print_help()
+        sys.exit(0)
+    
+    main(options, arguments[0])
