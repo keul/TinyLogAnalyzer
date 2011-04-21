@@ -8,9 +8,9 @@ import sys
 import re
 import optparse
 
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, time, timedelta
 
-PATTERN = r""".*?\[(?P<date>.*?)\:(?P<time>.*?)\] "(?:GET|POST) (?P<url>.*?)(?:\?.*?)? HTTP\/.*?" (?P<code>\d\d\d).*(?P<sec>\d+)\/(?P<micros>\d+)"""
+PATTERN = r""".*?\[(?P<date>.*?)\:(?P<time>\d\d\:\d\d\:\d\d).*?\] "(?:GET|POST) (?P<url>.*?)(?:\/?\?.*?)? HTTP\/.*?" (?P<code>\d\d\d).*(?P<sec>\d+)\/(?P<micros>\d+)"""
 logLine = re.compile(PATTERN, re.I)
 
 RECORD_TO_KEEP = 50
@@ -18,8 +18,8 @@ RECORD_TO_KEEP = 50
 version = "0.1.0"
 description = "Simple bash utility for analyse HTTP access log with enabled response time"
 
-
 MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Jun', 'Jul', 'Aug', 'Sep' 'Oct', 'Nov' 'Dec']
+
 
 def numeric_compare_total(x, y):
     return x['micros'] - y['micros']
@@ -53,6 +53,15 @@ def parseDate(st):
     return str2date(st)
 
 
+def parseTime(st):
+    try:
+        hh, mm, ss = st.split(':')
+    except ValueError:
+        hh, mm = st.split(':')
+        ss = 0
+    return time(int(hh), int(mm), int(ss))
+
+
 def main(options, logfile):
     log = open(logfile)
     
@@ -74,26 +83,53 @@ def main(options, logfile):
         lineData = matches.groupdict()
         ref_date = str2date(lineData['date'])
         url = lineData['url']
-                
+        
+        # start date filters
         if options.start_date:
             start_date = parseDate(options.start_date)
             if ref_date<start_date:
                 continue
 
+        # end date filters
         if options.end_date:
             end_date = parseDate(options.end_date)
             if ref_date>end_date:
                 continue
 
+        # include only...
         stop = False
-        for filter in options.filters:
-            if re.search(filter, url, re.IGNORECASE)==None:
+        for i in options.includes:
+            if re.search(i, url, re.IGNORECASE) is None:
                 stop = True
+                break
+        if stop:
+            continue
+
+        # exclude all
+        stop = False
+        for e in options.excludes:
+            if re.search(e, url, re.IGNORECASE) is not None:
+                stop = True
+                break
         if stop:
             continue
 
         lastProcessedDate = lineData.get('date')
         lastProcessedTime = lineData.get('time')
+
+        # not before time
+        if options.skip_time_start:
+            refTime = parseTime(options.skip_time_start)
+            lastTime = parseTime(lastProcessedTime)
+            if lastTime<refTime:
+                continue
+
+        # not after time
+        if options.skip_time_end:
+            refTime = parseTime(options.skip_time_end)
+            lastTime = parseTime(lastProcessedTime)
+            if lastTime>refTime:
+                continue
         
         if first:
             print "Starting from %s:%s" % (lastProcessedDate, lastProcessedTime)
@@ -167,12 +203,34 @@ if __name__ == '__main__':
     p.add_option('--help', '-h', action="store_true", default=False, help='show this help message and exit')
     p.add_option('--size', '-s', type="int", dest="size", default=RECORD_TO_KEEP,
                  help="choose the number of record to store in every log")
-    p.add_option('--start-date', dest="start_date", default=None,
-                 help="date where to start analyze and record")
-    p.add_option('--end-date', dest="end_date", default=None,
-                 help="date where to end analyze and record")
-    p.add_option('--filter', '-f', dest="filters", default=[], action="append", metavar="FILTER",
+    p.add_option('--include', '-i', dest="includes", default=[], action="append", metavar="INCLUDE_REGEX",
                  help="a regexp expression that all URLs must match of will be discarded. Can be called multiple times")
+    p.add_option('--exclude', '-e', dest="excludes", default=[], action="append", metavar="EXCLUDE_REGEX",
+                 help="a regexp expression that all URLs must not match of will be discarded. Can be called multiple times")
+
+    group = optparse.OptionGroup(p, "Date filters",
+                                    "For those kind of filters you need to specify a date.\n"
+                                    "You are free to use a specific date in the format dd/mmm/aaaa, like "
+                                    "\"24/May/2011\", but also some keyword for relative date like "
+                                    "\"today\", \"yesterday\", \"tomorrow\".\n")
+
+    group.add_option('--start-date', dest="start_date", default=None,
+                 help="date where to start analyze and record")
+    group.add_option('--end-date', dest="end_date", default=None,
+                 help="date where to end analyze and record")
+    p.add_option_group(group)
+
+    group = optparse.OptionGroup(p, "Time filters",
+                                    "When a time is needed, you must enter it in the format hh:mm:ss or simply "
+                                    "hh:mm, like \"09:21:30\" or \"09:21\".\n"
+                                    "Those filter are used for skip record that are registered \"too late at night\" " 
+                                    "or \"too early in the morning\".")
+    p.add_option('--skip-timeperiod-start', dest="skip_time_start", default=None,
+                 help="do not analyse after the given time")
+    p.add_option('--skip-timeperiod-end', dest="skip_time_end", default=None,
+                 help="do not analyse before the given time")
+    p.add_option_group(group)
+
 
     args = sys.argv[1:]
     options, arguments = p.parse_args(args)
