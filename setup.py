@@ -15,7 +15,7 @@ setup(name='TinyLogAnalyzer',
                    "License :: OSI Approved :: GNU General Public License (GPL)",
                    "Operating System :: OS Independent",
                    "Programming Language :: Python",
-                   "Topic :: Utilities"
+                   "Topic :: Utilities",
                    "Topic :: Internet :: Log Analysis",
                    "Topic :: Internet :: WWW/HTTP",
                    ], # Get strings from http://pypi.python.org/pypi?%3Aaction=list_classifiers
