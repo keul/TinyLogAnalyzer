@@ -62,6 +62,24 @@ def parseTime(st):
     return time(int(hh), int(mm), int(ss))
 
 
+def reduceTime(seconds, td_diff, skip_time_start, skip_time_end):
+    if td_diff.days>0:
+        if skip_time_start:
+            t = parseTime(skip_time_start)
+            amount = t.hour*3600
+            amount += t.minute*60
+            amount += t.second
+            seconds-= amount*td_diff.days
+        if skip_time_end:
+            t = parseTime(skip_time_end)
+            amount = (24-t.hour)*3600
+            # let's REMOVE minutes and seconds
+            amount -= t.minute*60
+            amount -= t.second
+            seconds-= amount*td_diff.days            
+    return seconds
+
+
 def main(options, logfile):
     log = open(logfile)
     
@@ -162,12 +180,24 @@ def main(options, logfile):
             topAverage = topAverage[:options.size]
 
     log.close()
+    
+    if first:
+        # no row parsed at all
+        print "No row parsed in the given range"
+        sys.exit(0)
+    
     lastDateTime = str2datetime("%s:%s" % (lastProcessedDate, lastProcessedTime))
 
     print "Ending at %s:%s" % (lastProcessedDate, lastProcessedTime)
     td_diff = lastDateTime-firstDateTime
     diff_seconds = (td_diff.microseconds + (td_diff.seconds + td_diff.days * 24 * 3600) * 10**6) / 10**6
-    print "Timedelta is %s (%s seconds)" % (td_diff, diff_seconds) 
+    
+    # if I use skip-timeperiod_start/end I need to remove values from this list
+    if options.skip_time_start or options.skip_time_end:
+        diff_seconds = reduceTime(diff_seconds, td_diff, options.skip_time_start, options.skip_time_end)
+        print "Timedelta is %s (but only %s seconds are counted due to time bounds)" % (td_diff, diff_seconds)
+    else:
+        print "Timedelta is %s (%s seconds)" % (td_diff, diff_seconds) 
     print ""
 
     print "Top total time"
