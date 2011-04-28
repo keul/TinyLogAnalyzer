@@ -1,6 +1,16 @@
 Changelog
 =========
 
+0.2.0 (2011-04-28)
+------------------
+
+* pep8 cleanup
+* URLs with trailing ``/`` now are collected has the same as URLs
+  without ``/``
+* filters with spaces chars are now handled as ``%20``
+* added ``-q`` option, for not merging anymore URLs different
+  only in query string
+
 0.1.0 (2011-04-27)
 ------------------
 

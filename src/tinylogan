@@ -1,7 +1,7 @@
 #! /usr/bin/python
 # -*- coding: utf-8 -*-
 
-# "172.16.245.69 - - [11/Apr/2011:16:06:10 +0200] GET /URL HTTP/1.1" 200 55700 7/7124818
+# "172.16.245.69 - - [11/Apr/2011:16:06:10 +0200] GET /URL HTTP/1.1" 200 55 7/7124818
 # "172.16.245.69 - - [11/Apr/2011:16:06:10 +0200] GET /URL HTTP/1.1" 304 - 0/15625
 
 import sys
@@ -10,12 +10,12 @@ import optparse
 
 from datetime import datetime, date, time, timedelta
 
-PATTERN = r""".*?\[(?P<date>.*?)\:(?P<time>\d\d\:\d\d\:\d\d).*?\] "(?:GET|POST) (?P<url>.*?)(?:\/?\?.*?)? HTTP\/.*?" (?P<code>\d\d\d).*(?P<sec>\d+)\/(?P<micros>\d+)"""
+PATTERN = r""".*?\[(?P<date>.*?)\:(?P<time>\d\d\:\d\d\:\d\d).*?\] "(?:GET|POST) (?P<url>.*?)(?P<querystring>\?.*?)? HTTP\/.*?" (?P<code>\d\d\d).*(?P<sec>\d+)\/(?P<micros>\d+)"""
 logLine = re.compile(PATTERN, re.I)
 
 RECORD_TO_KEEP = 50
 
-version = "0.1.0"
+version = "0.2.0"
 description = "Simple bash utility for analyse HTTP access log with enabled response time"
 
 MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Jun', 'Jul', 'Aug', 'Sep' 'Oct', 'Nov' 'Dec']
@@ -31,7 +31,7 @@ def numeric_compare_average(x, y):
 
 def str2date(st):
     dd, mmm, yyyy = st.split('/')
-    return date(int(yyyy), MONTHS.index(mmm)+1, int(dd))
+    return date(int(yyyy), MONTHS.index(mmm) + 1, int(dd))
 
 
 def str2datetime(st):
@@ -39,15 +39,15 @@ def str2datetime(st):
     11/Apr/2011:16:06:10
     """
     dd, mmm, yyyy, hh, mm, ss = st[:2], st[3:6], st[7:11], st[12:14], st[15:17], st[18:20]
-    return datetime(int(yyyy), MONTHS.index(mmm)+1, int(dd), int(hh), int(mm), int(ss))
+    return datetime(int(yyyy), MONTHS.index(mmm) + 1, int(dd), int(hh), int(mm), int(ss))
 
 
 def parseDate(st):
-    if st=='today':
+    if st == 'today':
         return date.today()
-    elif st=='yesterday':
+    elif st == 'yesterday':
         return date.today() - timedelta(days=1)
-    elif st=='tomorrow':
+    elif st == 'tomorrow':
         return date.today() + timedelta(days=1)
     # dd/Mmm/aaaa
     return str2date(st)
@@ -63,26 +63,26 @@ def parseTime(st):
 
 
 def reduceTime(seconds, td_diff, skip_time_start, skip_time_end):
-    if td_diff.days>0:
+    if td_diff.days > 0:
         if skip_time_start:
             t = parseTime(skip_time_start)
-            amount = t.hour*3600
-            amount += t.minute*60
+            amount = t.hour * 3600
+            amount += t.minute * 60
             amount += t.second
-            seconds-= amount*td_diff.days
+            seconds -= amount * td_diff.days
         if skip_time_end:
             t = parseTime(skip_time_end)
-            amount = (24-t.hour)*3600
+            amount = (24 - t.hour) * 3600
             # let's REMOVE minutes and seconds
-            amount -= t.minute*60
+            amount -= t.minute * 60
             amount -= t.second
-            seconds-= amount*td_diff.days            
+            seconds -= amount * td_diff.days
     return seconds
 
 
 def main(options, logfile):
     log = open(logfile)
-    
+
     lncount = 0
     registry = {}
     topTotal = []
@@ -92,32 +92,42 @@ def main(options, logfile):
 
     first = True
     for l in log:
-        lncount+=1
-                
+        lncount += 1
+
         matches = logLine.match(l)
         if matches is None:
             continue
 
         lineData = matches.groupdict()
         ref_date = str2date(lineData['date'])
+
+        # {'url': '/URL', 'sec': '7', 'code': '200', 'micros': '7124818'}
         url = lineData['url']
+        if url.endswith('/'):
+            url = url[:-1]
         
+        # choosend to keep querystrings
+        if options.keep_querystring:
+            querystring = lineData['querystring']
+            if querystring:
+                url+=querystring
+
         # start date filters
         if options.start_date:
             start_date = parseDate(options.start_date)
-            if ref_date<start_date:
+            if ref_date < start_date:
                 continue
 
         # end date filters
         if options.end_date:
             end_date = parseDate(options.end_date)
-            if ref_date>end_date:
+            if ref_date > end_date:
                 continue
 
         # include only...
         stop = False
         for i in options.includes:
-            if re.search(i, url, re.IGNORECASE) is None:
+            if re.search(i.replace(' ','%20'), url, re.IGNORECASE) is None:
                 stop = True
                 break
         if stop:
@@ -126,7 +136,7 @@ def main(options, logfile):
         # exclude all
         stop = False
         for e in options.excludes:
-            if re.search(e, url, re.IGNORECASE) is not None:
+            if re.search(e.replace(' ','%20'), url, re.IGNORECASE) is not None:
                 stop = True
                 break
         if stop:
@@ -139,32 +149,30 @@ def main(options, logfile):
         if options.skip_time_start:
             refTime = parseTime(options.skip_time_start)
             lastTime = parseTime(lastProcessedTime)
-            if lastTime<refTime:
+            if lastTime < refTime:
                 continue
 
         # not after time
         if options.skip_time_end:
             refTime = parseTime(options.skip_time_end)
             lastTime = parseTime(lastProcessedTime)
-            if lastTime>refTime:
+            if lastTime > refTime:
                 continue
-        
+
         if first:
             print "Starting from %s:%s" % (lastProcessedDate, lastProcessedTime)
             firstDateTime = str2datetime("%s:%s" % (lastProcessedDate, lastProcessedTime))
             first = False
-        
-        # {'url': '/URL', 'sec': '7', 'code': '200', 'micros': '7124818'}
-        url = lineData['url']
+
         if not registry.get(url):
             registry[url] = {'micros': int(lineData['micros']), 'times': 1, 'url': url}
         else:
             registry[url]['micros'] = registry[url]['micros'] + int(lineData['micros'])
-            registry[url]['times'] += 1        
+            registry[url]['times'] += 1
 
         # statistics
-        registry[url]['average'] = registry[url]['micros']/registry[url]['times']
-        
+        registry[url]['average'] = registry[url]['micros'] / registry[url]['times']
+
         try:
             topTotal.index(registry[url])
         except ValueError:
@@ -180,52 +188,52 @@ def main(options, logfile):
             topAverage = topAverage[:options.size]
 
     log.close()
-    
+
     if first:
         # no row parsed at all
         print "No row parsed in the given range"
         sys.exit(0)
-    
+
     lastDateTime = str2datetime("%s:%s" % (lastProcessedDate, lastProcessedTime))
 
     print "Ending at %s:%s" % (lastProcessedDate, lastProcessedTime)
-    td_diff = lastDateTime-firstDateTime
-    diff_seconds = (td_diff.microseconds + (td_diff.seconds + td_diff.days * 24 * 3600) * 10**6) / 10**6
-    
+    td_diff = lastDateTime - firstDateTime
+    diff_seconds = (td_diff.microseconds + (td_diff.seconds + td_diff.days * 24 * 3600) * 10 ** 6) / 10 ** 6
+
     # if I use skip-timeperiod_start/end I need to remove values from this list
     if options.skip_time_start or options.skip_time_end:
         diff_seconds = reduceTime(diff_seconds, td_diff, options.skip_time_start, options.skip_time_end)
         print "Timedelta is %s (but only %s seconds are counted due to time bounds)" % (td_diff, diff_seconds)
     else:
-        print "Timedelta is %s (%s seconds)" % (td_diff, diff_seconds) 
+        print "Timedelta is %s (%s seconds)" % (td_diff, diff_seconds)
     print ""
 
     print "Top total time"
     cnt = 0
     for x in topTotal:
-        cnt+=1
+        cnt += 1
         print "  %04d - %s %0.3f (%d times, average %0.3f, %0.2f%% of the total)" % (
                                                                cnt,
-                                                               x['url'], 
-                                                               float(x['micros'])/(1000*1000),
+                                                               x['url'],
+                                                               float(x['micros']) / (10 ** 6),
                                                                x['times'],
-                                                               float(x['micros'])/x['times']/(1000*1000),
-                                                               (float(x['micros'])/(1000*1000))*100/float(diff_seconds),
+                                                               float(x['micros']) / x['times'] / (10 ** 6),
+                                                               (float(x['micros']) / (10 ** 6)) * 100 / float(diff_seconds),
                                                                )
     print ""
     print "Top average time"
     cnt = 0
     for x in topAverage:
-        cnt+=1
+        cnt += 1
         print "  %04d - %s %0.3f (%d times, %d total)" % (cnt,
                                                           x['url'],
-                                                          float(x['average'])/(1000*1000),
+                                                          float(x['average']) / (10 ** 6),
                                                           x['times'],
-                                                          float(x['average'])/(1000*1000) * x['times'],
+                                                          float(x['average']) / (10 ** 6) * x['times'],
                                                           )
 
 if __name__ == '__main__':
-    
+
     usage = "usage: %prog [options] logfile"
     p = optparse.OptionParser(usage=usage, version="%prog " + version, description=description,
                               prog="tinylogan")
@@ -233,6 +241,9 @@ if __name__ == '__main__':
     p.add_option('--help', '-h', action="store_true", default=False, help='show this help message and exit')
     p.add_option('--size', '-s', type="int", dest="size", default=RECORD_TO_KEEP,
                  help="choose the number of record to store in every log")
+    p.add_option('--keep-query', '-q', dest="keep_querystring", default=False, action="store_true",
+                 help="keep query strings in URLs instead of cutting them. "
+                      "Using this an URL with different query string is treat like different URLs.")
     p.add_option('--include', '-i', dest="includes", default=[], action="append", metavar="INCLUDE_REGEX",
                  help="a regexp expression that all URLs must match of will be discarded. Can be called multiple times")
     p.add_option('--exclude', '-e', dest="excludes", default=[], action="append", metavar="EXCLUDE_REGEX",
@@ -253,7 +264,7 @@ if __name__ == '__main__':
     group = optparse.OptionGroup(p, "Time filters",
                                     "When a time is needed, you must enter it in the format hh:mm:ss or simply "
                                     "hh:mm, like \"09:21:30\" or \"09:21\".\n"
-                                    "Those filter are used for skip record that are registered \"too late at night\" " 
+                                    "Those filter are used for skip record that are registered \"too late at night\" "
                                     "or \"too early in the morning\".")
     p.add_option('--skip-timeperiod-start', dest="skip_time_start", default=None,
                  help="do not analyse after the given time")
@@ -261,12 +272,11 @@ if __name__ == '__main__':
                  help="do not analyse before the given time")
     p.add_option_group(group)
 
-
     args = sys.argv[1:]
     options, arguments = p.parse_args(args)
-    
+
     if options.help or not arguments:
         p.print_help()
         sys.exit(0)
-    
+
     main(options, arguments[0])

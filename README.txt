@@ -40,6 +40,9 @@ Here the complete guide::
       --version             show program's version number and exit
       -h, --help            show this help message and exit
       -s SIZE, --size=SIZE  choose the number of record to store in every log
+      -q, --keep-query      keep query strings in URLs instead of cutting them.
+                            Using this an URL with different query string is treat
+                            like different URLs.
       -i INCLUDE_REGEX, --include=INCLUDE_REGEX
                             a regexp expression that all URLs must match of will
                             be discarded. Can be called multiple times
