@@ -127,7 +127,7 @@ def main(options, logfile):
         # include only...
         stop = False
         for i in options.includes:
-            if re.search(i.replace(' ','%20'), url, re.IGNORECASE) is None:
+            if re.search(i, url, re.IGNORECASE) is None:
                 stop = True
                 break
         if stop:
@@ -136,7 +136,7 @@ def main(options, logfile):
         # exclude all
         stop = False
         for e in options.excludes:
-            if re.search(e.replace(' ','%20'), url, re.IGNORECASE) is not None:
+            if re.search(e, url, re.IGNORECASE) is not None:
                 stop = True
                 break
         if stop:

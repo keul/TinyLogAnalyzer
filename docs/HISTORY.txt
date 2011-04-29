@@ -1,13 +1,16 @@
 Changelog
 =========
 
-0.2.1 (Unreleased)
+0.2.1 (2011-04-29)
 ------------------
 
 * descriptions of ``--skip-timeperiod-start`` and
   ``-skip-timeperiod-end`` were inverted
 * URLs to the root page ("``/``") were transformed to
   empty strings
+* reveted changes that automatically change space in a ``%20``
+  for filters (not a good idea for something that must be
+  a valid regexp)
 
 0.2.0 (2011-04-28)
 ------------------

@@ -61,9 +61,9 @@ Here the complete guide::
         "tomorrow".
     
         --start-date=START_DATE
-                            date where to start analyze and record
+                            do not analyse records before the given time
         --end-date=END_DATE
-                            date where to end analyze and record
+                            do not analyse records later the given time
     
       Time filters:
         When a time is needed, you must enter it in the format hh:mm:ss or
