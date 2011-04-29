@@ -15,7 +15,7 @@ logLine = re.compile(PATTERN, re.I)
 
 RECORD_TO_KEEP = 50
 
-version = "0.2.0"
+version = "0.2.1"
 description = "Simple bash utility for analyse HTTP access log with enabled response time"
 
 MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Jun', 'Jul', 'Aug', 'Sep' 'Oct', 'Nov' 'Dec']
@@ -103,7 +103,7 @@ def main(options, logfile):
 
         # {'url': '/URL', 'sec': '7', 'code': '200', 'micros': '7124818'}
         url = lineData['url']
-        if url.endswith('/'):
+        if url.endswith('/') and url!='/':
             url = url[:-1]
         
         # choosend to keep querystrings
@@ -267,9 +267,9 @@ if __name__ == '__main__':
                                     "Those filter are used for skip record that are registered \"too late at night\" "
                                     "or \"too early in the morning\".")
     p.add_option('--skip-timeperiod-start', dest="skip_time_start", default=None,
-                 help="do not analyse after the given time")
+                 help="do not analyse records before the given time")
     p.add_option('--skip-timeperiod-end', dest="skip_time_end", default=None,
-                 help="do not analyse before the given time")
+                 help="do not analyse records later the given time")
     p.add_option_group(group)
 
     args = sys.argv[1:]

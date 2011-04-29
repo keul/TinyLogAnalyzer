@@ -1,6 +1,14 @@
 Changelog
 =========
 
+0.2.1 (Unreleased)
+------------------
+
+* descriptions of ``--skip-timeperiod-start`` and
+  ``-skip-timeperiod-end`` were inverted
+* URLs to the root page ("``/``") were transformed to
+  empty strings
+
 0.2.0 (2011-04-28)
 ------------------
 
@@ -14,4 +22,4 @@ Changelog
 0.1.0 (2011-04-27)
 ------------------
 
-* Initial release
+* initial release
