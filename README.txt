@@ -71,3 +71,8 @@ Here the complete guide::
         skip record that are registered "too late at night" or "too early in
         the morning".
 
+TODO
+====
+
+* modificator for relative dates (like ``yesterday-1``)
+* default ``.tinylogan`` file in users home folder, with default options
