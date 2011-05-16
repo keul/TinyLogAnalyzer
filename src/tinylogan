@@ -10,13 +10,17 @@ import optparse
 
 from datetime import datetime, date, time, timedelta
 
+# greedy
+#PATTERN = r"""[^[]*\[(?P<date>\d\d/\w*/\d{4})\:(?P<time>\d\d\:\d\d\:\d\d)[^[]*\] "(?:GET|POST) (?P<url>[^?]*)(?P<querystring>\?.*)? HTTP/.*" (?P<code>\d\d\d).*(?P<sec>\d+)/(?P<micros>\d+)"""
+# non-greedy
 PATTERN = r""".*?\[(?P<date>.*?)\:(?P<time>\d\d\:\d\d\:\d\d).*?\] "(?:GET|POST) (?P<url>.*?)(?P<querystring>\?.*?)? HTTP\/.*?" (?P<code>\d\d\d).*(?P<sec>\d+)\/(?P<micros>\d+)"""
+
 logLine = re.compile(PATTERN, re.I)
 
 RECORD_TO_KEEP = 50
 
 version = "0.3.0"
-description = "Simple bash utility for analyse HTTP access log with enabled response time"
+description = "Simple bash utility for analyze HTTP access log with enabled response time"
 
 MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep' 'Oct', 'Nov' 'Dec']
 
