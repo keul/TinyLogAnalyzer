@@ -15,7 +15,7 @@ logLine = re.compile(PATTERN, re.I)
 
 RECORD_TO_KEEP = 50
 
-version = "0.2.2"
+version = "0.3.0"
 description = "Simple bash utility for analyse HTTP access log with enabled response time"
 
 MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep' 'Oct', 'Nov' 'Dec']
@@ -91,6 +91,7 @@ def main(options, logfile):
     lastProcessedTime = None
 
     first = True
+    parsingStart = datetime.now()
     for l in log:
         lncount += 1
 
@@ -188,6 +189,7 @@ def main(options, logfile):
             topAverage = topAverage[:options.size]
 
     log.close()
+    requiredTime = datetime.now() - parsingStart
 
     if first:
         # no row parsed at all
@@ -197,6 +199,7 @@ def main(options, logfile):
     lastDateTime = str2datetime("%s:%s" % (lastProcessedDate, lastProcessedTime))
 
     print "Ending at %s:%s" % (lastProcessedDate, lastProcessedTime)
+    print "Elapsed time: %s" % requiredTime
     td_diff = lastDateTime - firstDateTime
     diff_seconds = (td_diff.microseconds + (td_diff.seconds + td_diff.days * 24 * 3600) * 10 ** 6) / 10 ** 6
 
