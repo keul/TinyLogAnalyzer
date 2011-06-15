@@ -34,11 +34,12 @@ Here the complete guide::
 
     Usage: tinylogan [options] logfile
     
-    Simple bash utility for analyse HTTP access log with enabled response time
+    Simple bash utility for analyze HTTP access log with enabled response time
     
     Options:
       --version             show program's version number and exit
       -h, --help            show this help message and exit
+      -v, --verbose         verbose output during log analysis
       -s SIZE, --size=SIZE  choose the number of record to store in every log
       -q, --keep-query      keep query strings in URLs instead of cutting them.
                             Using this an URL with different query string is treat
@@ -49,10 +50,16 @@ Here the complete guide::
       -e EXCLUDE_REGEX, --exclude=EXCLUDE_REGEX
                             a regexp expression that all URLs must not match of
                             will be discarded. Can be called multiple times
+      --min-time=MIN_TIME_MILLIS
+                            ignore all entries that require less than this amount
+                            of millisecs
+      --max-time=MAX_TIME_MILLIS
+                            ignore all entries that require more than this amount
+                            of millisecs
       --skip-timeperiod-start=SKIP_TIME_START
-                            do not analyse after the given time
+                            do not analyse records before the given time
       --skip-timeperiod-end=SKIP_TIME_END
-                            do not analyse before the given time
+                            do not analyse records later the given time
     
       Date filters:
         For those kind of filters you need to specify a date. You are free to
@@ -61,9 +68,9 @@ Here the complete guide::
         "tomorrow".
     
         --start-date=START_DATE
-                            do not analyse records before the given time
+                            date where to start analyze and record
         --end-date=END_DATE
-                            do not analyse records later the given time
+                            date where to end analyze and record
     
       Time filters:
         When a time is needed, you must enter it in the format hh:mm:ss or
@@ -76,3 +83,7 @@ TODO
 
 * modificator for relative dates (like ``yesterday-1``)
 * default ``.tinylogan`` file in users home folder, with default options
+* a way to ignore min and max value from mutiple record of a URL
+* right now all records are stored in memory... obviously this is not the way to
+  parse a potentially multiple-gigabyte-long-file
+

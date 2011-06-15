@@ -87,7 +87,6 @@ def reduceTime(seconds, td_diff, skip_time_start, skip_time_end):
 def main(options, logfile):
     log = open(logfile)
 
-    lncount = 0
     registry = {}
     topTotal = []
     topAverage = []
@@ -96,103 +95,114 @@ def main(options, logfile):
 
     first = True
     parsingStart = datetime.now()
-    for l in log:
-        lncount += 1
+    try:
+        for l in log:
 
-        matches = logLine.match(l)
-        if matches is None:
-            continue
-
-        lineData = matches.groupdict()
-        ref_date = str2date(lineData['date'])
-
-        # {'url': '/URL', 'sec': '7', 'code': '200', 'micros': '7124818'}
-        url = lineData['url']
-        if url.endswith('/') and url!='/':
-            url = url[:-1]
-        
-        # choosend to keep querystrings
-        if options.keep_querystring:
-            querystring = lineData['querystring']
-            if querystring:
-                url+=querystring
-
-        # start date filters
-        if options.start_date:
-            start_date = parseDate(options.start_date)
-            if ref_date < start_date:
+            matches = logLine.match(l)
+            if matches is None:
                 continue
 
-        # end date filters
-        if options.end_date:
-            end_date = parseDate(options.end_date)
-            if ref_date > end_date:
+            lineData = matches.groupdict()
+            ref_date = str2date(lineData['date'])
+
+            # {'url': '/URL', 'sec': '7', 'code': '200', 'micros': '7124818'}
+            url = lineData['url']
+            if url.endswith('/') and url != '/':
+                url = url[:-1]
+
+            curMicros = int(lineData['micros'])
+            # min time check
+            if options.min_time and curMicros < options.min_time*1000:
+                continue
+            # max time check
+            if options.max_time and curMicros > options.max_time*1000:
                 continue
 
-        # include only...
-        stop = False
-        for i in options.includes:
-            if re.search(i, url, re.IGNORECASE) is None:
-                stop = True
-                break
-        if stop:
-            continue
+            # choosed to keep querystrings
+            if options.keep_querystring:
+                querystring = lineData['querystring']
+                if querystring:
+                    url += querystring
 
-        # exclude all
-        stop = False
-        for e in options.excludes:
-            if re.search(e, url, re.IGNORECASE) is not None:
-                stop = True
-                break
-        if stop:
-            continue
+            # start date filters
+            if options.start_date:
+                start_date = parseDate(options.start_date)
+                if ref_date < start_date:
+                    continue
 
-        if options.verbose and lastProcessedDate and lineData.get('date')!=lastProcessedDate:
-            print "...now analyzing %s" % lineData.get('date')
-        lastProcessedDate = lineData.get('date')
-        lastProcessedTime = lineData.get('time')
+            # end date filters
+            if options.end_date:
+                end_date = parseDate(options.end_date)
+                if ref_date > end_date:
+                    continue
 
-        # not before time
-        if options.skip_time_start:
-            refTime = parseTime(options.skip_time_start)
-            lastTime = parseTime(lastProcessedTime)
-            if lastTime < refTime:
+            # include only...
+            stop = False
+            for i in options.includes:
+                if re.search(i, url, re.IGNORECASE) is None:
+                    stop = True
+                    break
+            if stop:
                 continue
 
-        # not after time
-        if options.skip_time_end:
-            refTime = parseTime(options.skip_time_end)
-            lastTime = parseTime(lastProcessedTime)
-            if lastTime > refTime:
+            # exclude all
+            stop = False
+            for e in options.excludes:
+                if re.search(e, url, re.IGNORECASE) is not None:
+                    stop = True
+                    break
+            if stop:
                 continue
 
-        if first:
-            print "Starting from %s:%s" % (lastProcessedDate, lastProcessedTime)
-            firstDateTime = str2datetime("%s:%s" % (lastProcessedDate, lastProcessedTime))
-            first = False
+            if options.verbose and lastProcessedDate and lineData.get('date') != lastProcessedDate:
+                print "...now analyzing %s" % lineData.get('date')
+            lastProcessedDate = lineData.get('date')
+            lastProcessedTime = lineData.get('time')
 
-        if not registry.get(url):
-            registry[url] = {'micros': int(lineData['micros']), 'times': 1, 'url': url}
-        else:
-            registry[url]['micros'] = registry[url]['micros'] + int(lineData['micros'])
-            registry[url]['times'] += 1
+            # not before time
+            if options.skip_time_start:
+                refTime = parseTime(options.skip_time_start)
+                lastTime = parseTime(lastProcessedTime)
+                if lastTime < refTime:
+                    continue
 
-        # statistics
-        registry[url]['average'] = registry[url]['micros'] / registry[url]['times']
+            # not after time
+            if options.skip_time_end:
+                refTime = parseTime(options.skip_time_end)
+                lastTime = parseTime(lastProcessedTime)
+                if lastTime > refTime:
+                    continue
 
-        try:
-            topTotal.index(registry[url])
-        except ValueError:
-            topTotal.append(registry[url])
-            topTotal.sort(numeric_compare_total, reverse=True)
-            topTotal = topTotal[:options.size]
+            if first:
+                print "Starting from %s:%s" % (lastProcessedDate, lastProcessedTime)
+                firstDateTime = str2datetime("%s:%s" % (lastProcessedDate, lastProcessedTime))
+                first = False
 
-        try:
-            topAverage.index(registry[url])
-        except ValueError:
-            topAverage.append(registry[url])
-            topAverage.sort(numeric_compare_average, reverse=True)
-            topAverage = topAverage[:options.size]
+            if not registry.get(url):
+                registry[url] = {'micros': curMicros, 'times': 1, 'url': url}
+            else:
+                registry[url]['micros'] = registry[url]['micros'] + curMicros
+                registry[url]['times'] += 1
+
+            # statistics
+            registry[url]['average'] = registry[url]['micros'] / registry[url]['times']
+
+            try:
+                topTotal.index(registry[url])
+            except ValueError:
+                topTotal.append(registry[url])
+                topTotal.sort(numeric_compare_total, reverse=True)
+                topTotal = topTotal[:options.size]
+
+            try:
+                topAverage.index(registry[url])
+            except ValueError:
+                topAverage.append(registry[url])
+                topAverage.sort(numeric_compare_average, reverse=True)
+                topAverage = topAverage[:options.size]
+    except KeyboardInterrupt:
+        # first CTRL+C don't stop the program
+        print "enough... stopped by user action"
 
     log.close()
     requiredTime = datetime.now() - parsingStart
@@ -222,24 +232,25 @@ def main(options, logfile):
     for x in topTotal:
         cnt += 1
         print "  %04d - %s %0.3f (%d times, average %0.3f, %0.2f%% of the total)" % (
-                                                               cnt,
-                                                               x['url'],
-                                                               float(x['micros']) / (10 ** 6),
-                                                               x['times'],
-                                                               float(x['micros']) / x['times'] / (10 ** 6),
-                                                               (float(x['micros']) / (10 ** 6)) * 100 / float(diff_seconds),
-                                                               )
+                           cnt,
+                           x['url'],
+                           float(x['micros']) / (10 ** 6),
+                           x['times'],
+                           float(x['micros']) / x['times'] / (10 ** 6),
+                           (float(x['micros']) / (10 ** 6)) * 100 / float(diff_seconds),
+                           )
     print ""
     print "Top average time"
     cnt = 0
     for x in topAverage:
         cnt += 1
-        print "  %04d - %s %0.3f (%d times, %d total)" % (cnt,
-                                                          x['url'],
-                                                          float(x['average']) / (10 ** 6),
-                                                          x['times'],
-                                                          float(x['average']) / (10 ** 6) * x['times'],
-                                                          )
+        print "  %04d - %s %0.3f (%d times, %d total)" % (
+                          cnt,
+                          x['url'],
+                          float(x['average']) / (10 ** 6),
+                          x['times'],
+                          float(x['average']) / (10 ** 6) * x['times'],
+                          )
 
 if __name__ == '__main__':
 
@@ -258,6 +269,13 @@ if __name__ == '__main__':
                  help="a regexp expression that all URLs must match of will be discarded. Can be called multiple times")
     p.add_option('--exclude', '-e', dest="excludes", default=[], action="append", metavar="EXCLUDE_REGEX",
                  help="a regexp expression that all URLs must not match of will be discarded. Can be called multiple times")
+    p.add_option('--min-time', type="int", dest="min_time", default=0, metavar="MIN_TIME_MILLIS",
+                 help="ignore all entries that require less than this amount of millisecs")
+    p.add_option('--max-time', type="int", dest="max_time", default=0, metavar="MAX_TIME_MILLIS",
+                 help="ignore all entries that require more than this amount of millisecs")
+    p.add_option('--min-times', type="int", dest="min_times", default=0, metavar="MIN_TIMES",
+                 help="set a minimum number of times that a entry must be found to be used in the \"Top average time\" statistic")
+
 
     group = optparse.OptionGroup(p, "Date filters",
                                     "For those kind of filters you need to specify a date.\n"
@@ -289,4 +307,8 @@ if __name__ == '__main__':
         p.print_help()
         sys.exit(0)
 
-    main(options, arguments[0])
+    try:
+        main(options, arguments[0])
+    except KeyboardInterrupt:
+        print "Stopped by user action"
+        sys.exit(1)
