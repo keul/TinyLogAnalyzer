@@ -147,6 +147,8 @@ def main(options, logfile):
         if stop:
             continue
 
+        if options.verbose and lastProcessedDate and lineData.get('date')!=lastProcessedDate:
+            print "...now analyzing %s" % lineData.get('date')
         lastProcessedDate = lineData.get('date')
         lastProcessedTime = lineData.get('time')
 
@@ -246,6 +248,7 @@ if __name__ == '__main__':
                               prog="tinylogan")
     p.remove_option("--help")
     p.add_option('--help', '-h', action="store_true", default=False, help='show this help message and exit')
+    p.add_option('--verbose', '-v', action="store_true", default=False, help='verbose output during log analysis')
     p.add_option('--size', '-s', type="int", dest="size", default=RECORD_TO_KEEP,
                  help="choose the number of record to store in every log")
     p.add_option('--keep-query', '-q', dest="keep_querystring", default=False, action="store_true",

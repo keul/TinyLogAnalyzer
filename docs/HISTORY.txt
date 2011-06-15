@@ -5,6 +5,7 @@ Changelog
 ------------------
 
 * added "Elapsed time" report
+* added ``--verbose`` option
 
 0.2.2 (2011-05-02)
 ------------------
