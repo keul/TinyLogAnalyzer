@@ -1,7 +1,7 @@
 .. contents:: **Table of contents**
 
-Tiny Log Analizer
-=================
+Introduction
+============
 
 This project adds to your system a new utility command: ``tinylogan``. This utility only works with
 Apache-like access HTTP log where the response time data is enabled.
@@ -25,7 +25,9 @@ __ http://www.ducea.com/2008/02/06/apache-logs-how-long-does-it-take-to-serve-a-
 Seconds and microsends
 ----------------------
 
-The utility only cares about microsends (`%D`) so you need to have Apache 2.
+The utility only cares about microsends (`%D`) so you need to have `Apache 2`__.
+
+__ http://httpd.apache.org/docs/
 
 How to use
 ==========
@@ -56,6 +58,9 @@ Here the complete guide::
       --max-time=MAX_TIME_MILLIS
                             ignore all entries that require more than this amount
                             of millisecs
+      --min-times=MIN_TIMES
+                            set a minimum number of times that a entry must be
+                            found to be used in the "Top average time" statistic
       --skip-timeperiod-start=SKIP_TIME_START
                             do not analyse records before the given time
       --skip-timeperiod-end=SKIP_TIME_END
@@ -78,12 +83,87 @@ Here the complete guide::
         skip record that are registered "too late at night" or "too early in
         the morning".
 
+Results
+=======
+
+Let explain the given results::
+
+    Starting from 15/Apr/2011:08:19:06
+    enough... stopped by user action
+    Ending at 28/Apr/2011:17:00:36
+    Elapsed time: 0:00:04.955008
+    Timedelta is 13 days, 8:41:30 (but only 7 days, 9:41:30 are counted due to time bounds)
+    
+    Top total time
+      0001 - /url1 46591.603 (4924 times, average 9.462, 7.28% of the total)
+      0002 - /url2 12660.053 (1212 times, average 10.446, 1.98% of the total)
+      ...
+    
+    Top average time
+      0001 - /url3 32.828 (15 times, 492 total)
+      0002 - /url4 30.549 (7 times, 213 total)
+      ...
+
+``Starting from ...``
+    First valid entry found in the log
+``enough... stopped by user action``
+    Only if you CTRL+C during the log analysis. This will stop the log scan and skip to results immediatly
+``Ending at ...``
+    Last entry analyzed
+``Elapsed time: ...``
+    Time required for the log analysis
+``Timedelta is ...``
+    Number of days from the first and last entry of the log, important for giving to the users a percent
+    of the total time taken from an entry.
+    
+    If you use some of the time filters above the used value for the statistic is the one given in the
+    sentence ``but only xxx are counted due to time bounds``.
+
+Top total time
+--------------
+
+This will show, from the most consuming time to the less ones, a hierarchy of the URLs that take the most
+time from the analyzed log::
+
+    
+            Total number of seconds taken
+                         |                    Average time per call
+    Entry position       |                             |
+          |              |                             |
+         0001 - /url1 46591.603 (4924 times, average 9.462, 7.28% of the total)
+                  |               |                          |
+           URL of the entry       |                          |
+                                  |             Percentage of the total time
+                             Times called
+
+Top average time
+----------------
+
+This will show, from the most slow entry to the less ones, a hierarchy of the URLs that seems slowest,
+considering the average time per hit.
+
+Note that you could like to use the ``--min-times`` option for have a better statiscal report for this.
+Without giving this option, a on-time call to a very slow procedure will probably be reported in this
+hierarchy, even if it will not give you a good average data.
+
+Let's details::
+
+         Average number of seconds taken
+                        |
+    Entry position      |         Total time in seconds
+          |             |                  |
+         0001 - /url3 32.828 (15 times, 492 total)
+                  |              |
+           URL of the entry      |
+                                 |
+                            Times called
+
 TODO
 ====
 
 * modificator for relative dates (like ``yesterday-1``)
 * default ``.tinylogan`` file in users home folder, with default options
-* a way to ignore min and max value from mutiple record of a URL
+* a way to ignore min and max value(2) from multiple occurrences of a match
 * right now all records are stored in memory... obviously this is not the way to
   parse a potentially multiple-gigabyte-long-file
-
+* better control on logging, with differents log level

@@ -10,7 +10,7 @@ setup(name='TinyLogAnalyzer',
       description="Simple bash utility for analyze HTTP access log with enabled response time",
       long_description=open("README.txt").read() + "\n" +
                        open(os.path.join("docs", "HISTORY.txt")).read(),
-      classifiers=["Development Status :: 4 - Beta",
+      classifiers=["Development Status :: 3 - Alpha",
                    "Intended Audience :: System Administrators",
                    "License :: OSI Approved :: GNU General Public License (GPL)",
                    "Operating System :: OS Independent",

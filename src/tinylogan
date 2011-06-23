@@ -184,25 +184,32 @@ def main(options, logfile):
                 registry[url]['micros'] = registry[url]['micros'] + curMicros
                 registry[url]['times'] += 1
 
-            # statistics
+            # data for statistics
             registry[url]['average'] = registry[url]['micros'] / registry[url]['times']
 
-            try:
-                topTotal.index(registry[url])
-            except ValueError:
-                topTotal.append(registry[url])
-                topTotal.sort(numeric_compare_total, reverse=True)
-                topTotal = topTotal[:options.size]
-
-            try:
-                topAverage.index(registry[url])
-            except ValueError:
-                topAverage.append(registry[url])
-                topAverage.sort(numeric_compare_average, reverse=True)
-                topAverage = topAverage[:options.size]
     except KeyboardInterrupt:
         # first CTRL+C don't stop the program
         print "enough... stopped by user action"
+
+    # ******* now collect statistical data *******
+    for m, record in registry.items():
+            # Top total time 
+            try:
+                topTotal.index(record)
+            except ValueError:
+                topTotal.append(record)
+                topTotal.sort(numeric_compare_total, reverse=True)
+                topTotal = topTotal[:options.size]
+
+            # top average time
+            if not options.min_times or options.min_times<=record['times']:
+                try:
+                    topAverage.index(record)
+                except ValueError:
+                    topAverage.append(record)
+                    topAverage.sort(numeric_compare_average, reverse=True)
+                    topAverage = topAverage[:options.size]
+
 
     log.close()
     requiredTime = datetime.now() - parsingStart
@@ -222,7 +229,7 @@ def main(options, logfile):
     # if I use skip-timeperiod_start/end I need to remove values from this list
     if options.skip_time_start or options.skip_time_end:
         diff_seconds = reduceTime(diff_seconds, td_diff, options.skip_time_start, options.skip_time_end)
-        print "Timedelta is %s (but only %s seconds are counted due to time bounds)" % (td_diff, diff_seconds)
+        print "Timedelta is %s (but only %s are counted due to time bounds)" % (td_diff, timedelta(seconds=diff_seconds))
     else:
         print "Timedelta is %s (%s seconds)" % (td_diff, diff_seconds)
     print ""
@@ -259,7 +266,7 @@ if __name__ == '__main__':
                               prog="tinylogan")
     p.remove_option("--help")
     p.add_option('--help', '-h', action="store_true", default=False, help='show this help message and exit')
-    p.add_option('--verbose', '-v', action="store_true", default=False, help='verbose output during log analysis')
+    p.add_option('--verbose', '-v', action="count", default=0, help='verbose output during log analysis')
     p.add_option('--size', '-s', type="int", dest="size", default=RECORD_TO_KEEP,
                  help="choose the number of record to store in every log")
     p.add_option('--keep-query', '-q', dest="keep_querystring", default=False, action="store_true",

@@ -12,7 +12,8 @@ Changelog
   simply stop the log analysis while the second terminate
   the process
 * added the ``--min-times`` option, to control when an entry
-  must compare in the "Top average time" statistic -- TODO
+  must be in the "Top average time" statistic
+* more clean documentation
 
 0.2.2 (2011-05-02)
 ------------------
