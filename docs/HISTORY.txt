@@ -1,19 +1,19 @@
 Changelog
 =========
 
-0.3.0 (Unreleased)
+0.3.0 (2011-06-23)
 ------------------
 
 * added "Elapsed time" report
 * added ``--verbose`` option
 * added a way to skip records if they require too little,
-  or too mush seconds
+  or too much time
 * handled keyboard interrupt (*CTRL+C*); the first one will
   simply stop the log analysis while the second terminate
   the process
 * added the ``--min-times`` option, to control when an entry
   must be in the "Top average time" statistic
-* more clean documentation
+* more complete documentation
 
 0.2.2 (2011-05-02)
 ------------------

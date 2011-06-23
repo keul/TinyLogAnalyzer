@@ -112,10 +112,10 @@ def main(options, logfile):
 
             curMicros = int(lineData['micros'])
             # min time check
-            if options.min_time and curMicros < options.min_time*1000:
+            if options.min_time and curMicros < options.min_time * 1000:
                 continue
             # max time check
-            if options.max_time and curMicros > options.max_time*1000:
+            if options.max_time and curMicros > options.max_time * 1000:
                 continue
 
             # choosed to keep querystrings
@@ -193,7 +193,7 @@ def main(options, logfile):
 
     # ******* now collect statistical data *******
     for m, record in registry.items():
-            # Top total time 
+            # Top total time
             try:
                 topTotal.index(record)
             except ValueError:
@@ -202,14 +202,13 @@ def main(options, logfile):
                 topTotal = topTotal[:options.size]
 
             # top average time
-            if not options.min_times or options.min_times<=record['times']:
+            if not options.min_times or options.min_times <= record['times']:
                 try:
                     topAverage.index(record)
                 except ValueError:
                     topAverage.append(record)
                     topAverage.sort(numeric_compare_average, reverse=True)
                     topAverage = topAverage[:options.size]
-
 
     log.close()
     requiredTime = datetime.now() - parsingStart
@@ -282,7 +281,6 @@ if __name__ == '__main__':
                  help="ignore all entries that require more than this amount of millisecs")
     p.add_option('--min-times', type="int", dest="min_times", default=0, metavar="MIN_TIMES",
                  help="set a minimum number of times that a entry must be found to be used in the \"Top average time\" statistic")
-
 
     group = optparse.OptionGroup(p, "Date filters",
                                     "For those kind of filters you need to specify a date.\n"
