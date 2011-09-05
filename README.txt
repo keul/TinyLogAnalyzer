@@ -69,8 +69,12 @@ Here the complete guide::
       Date filters:
         For those kind of filters you need to specify a date. You are free to
         use a specific date in the format dd/mmm/aaaa, like "24/May/2011", but
-        also some keyword for relative date like "today", "yesterday",
-        "tomorrow".
+        also some keywords for relative date like "today", "yesterday",
+        "tomorrow", "week" and "month". Use of "week" and "month" mean
+        referring to first day of the current week or month. You can also
+        provide a numerical modifier using "+" or "-" followed by a day
+        quantity (example: "week-5" for going back of 5 days from the begin of
+        the week).
     
         --start-date=START_DATE
                             date where to start analyze and record
@@ -161,9 +165,7 @@ Let's details::
 TODO
 ====
 
-* modificator for relative dates (like ``yesterday-1``)
 * default ``.tinylogan`` file in users home folder, with default options
 * a way to ignore min and max values from multiple occurrences of a match
 * right now all records are stored in memory... obviously this is not the way to
   parse a potentially multiple-gigabyte-long-file
-* better control on logging, with differents log level

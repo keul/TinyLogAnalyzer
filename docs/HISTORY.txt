@@ -1,6 +1,21 @@
 Changelog
 =========
 
+0.4.0 (Unreleased)
+------------------
+
+* when error happens during log analysis, report the error
+  line number
+* fixed *severe* bug in the month array, that simply make this
+  script useless for everything after August
+* use the python logging module for handle error and verbosity;
+  this clean the output a little
+* log a warning if encounter a line that doesn't match the log
+  format
+* added ``week`` and ``month`` date filters
+* added quantity modifiers to date filters
+* implemented users default settings -- TODO --
+
 0.3.0 (2011-06-23)
 ------------------
 

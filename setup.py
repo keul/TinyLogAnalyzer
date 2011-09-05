@@ -6,7 +6,7 @@ import sys, os
 setup(name='TinyLogAnalyzer',
       # py_modules=['tinylogan',],
       scripts=['src/tinylogan',],
-      version="0.3.0",
+      version="0.4.0",
       description="Simple bash utility for analyze HTTP access log with enabled response time",
       long_description=open("README.txt").read() + "\n" +
                        open(os.path.join("docs", "HISTORY.txt")).read(),
