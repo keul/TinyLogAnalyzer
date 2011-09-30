@@ -14,6 +14,7 @@ Changelog
   format
 * added ``week`` and ``month`` date filters
 * added quantity modifiers to date filters
+* added the new ``skip-day`` filter
 * implemented users default settings -- TODO --
 
 0.3.0 (2011-06-23)

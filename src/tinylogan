@@ -186,10 +186,26 @@ def main(options, logfile):
             if stop:
                 continue
 
-            if lastProcessedDate and lineData.get('date') != lastProcessedDate:
+            if lineData.get('date') != lastProcessedDate:
+                lastProcessedDate = lineData.get('date')
+                lastProcessedTime = lineData.get('time')
+                # day filter: first time only for printing
+                stop = False
+                for dreg in options.skip_days:
+                    if re.match(dreg, lastProcessedDate):
+                        stop = True
+                if stop:
+                    logger.debug("Skipping day %s due to filters" % lastProcessedDate)
+                    continue
                 logger.debug("...now analyzing %s" % lineData.get('date'))
-            lastProcessedDate = lineData.get('date')
-            lastProcessedTime = lineData.get('time')
+
+            # day filter: other times in the same day
+            stop = False
+            for dreg in options.skip_days:
+                if re.match(dreg, lastProcessedDate):
+                    stop = True
+            if stop:
+                continue
 
             # not before time
             if options.skip_time_start:
@@ -221,7 +237,7 @@ def main(options, logfile):
 
     except KeyboardInterrupt:
         # first CTRL+C don't stop the program
-        print "enough... stopped by user action"
+        print "\nEnough... stopped by user action"
     except:
         logger.exception("Error parsing log at line %d\n%s" % (cnt, l))
         raise 
@@ -333,6 +349,8 @@ if __name__ == '__main__':
                  help="date where to start analyze and record")
     group.add_option('--end-date', dest="end_date", default=None,
                  help="date where to end analyze and record")
+    group.add_option('--skip-day', dest="skip_days", default=[], action="append",
+                 help="A regexp of a whole day or a set or date to be ignored. Can be called multiple times")
     p.add_option_group(group)
 
     group = optparse.OptionGroup(p, "Time filters",
@@ -340,9 +358,9 @@ if __name__ == '__main__':
                                     "hh:mm, like \"09:21:30\" or \"09:21\".\n"
                                     "Those filter are used for skip record that are registered \"too late at night\" "
                                     "or \"too early in the morning\".")
-    p.add_option('--skip-timeperiod-start', dest="skip_time_start", default=None,
+    group.add_option('--skip-timeperiod-start', dest="skip_time_start", default=None,
                  help="do not analyse records before the given time")
-    p.add_option('--skip-timeperiod-end', dest="skip_time_end", default=None,
+    group.add_option('--skip-timeperiod-end', dest="skip_time_end", default=None,
                  help="do not analyse records later the given time")
     p.add_option_group(group)
 
