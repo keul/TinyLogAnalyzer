@@ -160,7 +160,7 @@ def main(options, logfile):
                 continue
 
             # choosed to keep querystrings
-            if options.keep_querystring:
+            if options.keep_query:
                 querystring = lineData['querystring']
                 if querystring:
                     url += querystring
@@ -175,14 +175,16 @@ def main(options, logfile):
             if options.end_date:
                 end_date = parseDate(options.end_date)
                 if ref_date > end_date:
-                    continue
+                    break
 
             # include only...
             stop = False
-            for i in options.includes:
-                if re.search(i, url, re.IGNORECASE) is None:
-                    stop = True
-                    break
+            if options.includes:
+                stop = True
+                for i in options.includes:
+                    if re.search(i, url, re.IGNORECASE) is not None:
+                        stop = False
+                        break
             if stop:
                 continue
 
@@ -317,20 +319,46 @@ def main(options, logfile):
 
 if __name__ == '__main__':
 
+    args = sys.argv[1:]
+
+    defaults = {'size': 50, 'keep-query': False, 'min-time': 0, 'max-time': 0, 'min-times': 0,
+                'start-date': None, 'end-date': None, 'skip-time-start': None, 'skip-time-end': None,
+                'skip-timeperiod-start' : None, 'skip-timeperiod-end': None,
+                'includes': [], 
+                }
+
     # Load user default settings
-    defaults = {'size': 50, 'min-time': 0, 'max-time': 0, 'min-times': 0,
-                'start-date': None, 'end-date': None, 'skip-time-start': None,
-                'skip-time-end': None}
-    if os.path.exists(os.path.join(HOME, '.tinylogan')):
+    if '-U' not in args and os.path.exists(os.path.join(HOME, '.tinylogan')):
         cfile = open(os.path.join(HOME, '.tinylogan'), 'r')
         config = ConfigParser.SafeConfigParser()
         config.readfp(cfile)
         cfile.close()
 
-        for param in ('size', 'min-time', 'max-time', 'min-times', 'start-date', 'end-date', 'skip-time-start', 'skip-time-end'):
-            # now override options
-            if config.has_option("tinylogan", param):
-                defaults[param] = config.getint("tinylogan", param)
+        # I need to fake-read the argument -c now
+        if '-c' in args:
+            config_profile = args[args.index('-c')+1]
+            if not config.has_section(config_profile):
+                print 'Section "%s" not found in %s' % (config_profile, os.path.join(HOME, '.tinylogan'))
+                sys.exit(1)
+        else:
+            config_profile = 'DEFAULT'
+
+        # numerical
+        for param in ('size', 'min-time', 'max-time', 'min-times', ):
+            if config.has_option(config_profile, param):
+                defaults[param] = config.getint(config_profile, param)
+        # boolean
+        for param in ('keep-query', ):
+            if config.has_option(config_profile, param):
+                defaults[param] = config.getboolean(config_profile, param)            
+        # strings
+        for param in ('start-date', 'end-date', 'skip-timeperiod-start', 'skip-timeperiod-end', ):
+            if config.has_option(config_profile, param):
+                defaults[param] = config.get(config_profile, param)
+        # multis
+        for param in ('includes', ):
+            if config.has_option(config_profile, param):
+                defaults[param] = [x.strip() for x in config.get(config_profile, param).splitlines() if x]
  
     usage = "usage: %prog [options] logfile"
     p = optparse.OptionParser(usage=usage, version="%prog " + version, description=description,
@@ -340,13 +368,15 @@ if __name__ == '__main__':
     p.add_option('--verbose', '-v', action="count", default=0, help='verbose output during log analysis')
     p.add_option('--size', '-s', type="int", dest="size", default=defaults['size'],
                  help="choose the number of record to store in every log")
-    p.add_option('--keep-query', '-q', dest="keep_querystring", default=False, action="store_true",
+    p.add_option('--keep-query', '-q', dest="keep_query", default=defaults['keep-query'], action="store_true",
                  help="keep query strings in URLs instead of cutting them. "
                       "Using this an URL with different query string is treat like different URLs.")
-    p.add_option('--include', '-i', dest="includes", default=[], action="append", metavar="INCLUDE_REGEX",
-                 help="a regexp expression that all URLs must match of will be discarded. Can be called multiple times")
+    p.add_option('--include', '-i', dest="includes", default=defaults['includes'], action="append", metavar="INCLUDE_REGEX",
+                 help="a regexp expression that an URLs must match of will be discarded. "
+                      "Can be called multiple times, expanding the set")
     p.add_option('--exclude', '-e', dest="excludes", default=[], action="append", metavar="EXCLUDE_REGEX",
-                 help="a regexp expression that all URLs must not match of will be discarded. Can be called multiple times")
+                 help="a regexp expression that an URLs must not match of will be discarded. "
+                      "Can be called multiple times, reducing the set")
     p.add_option('--min-time', type="int", dest="min_time", default=defaults['min-time'], metavar="MIN_TIME_MILLIS",
                  help="ignore all entries that require less than this amount of millisecs")
     p.add_option('--max-time', type="int", dest="max_time", default=defaults['max-time'], metavar="MAX_TIME_MILLIS",
@@ -366,11 +396,11 @@ if __name__ == '__main__':
                                     "(example: \"week-5\" for going back of 5 days from the start of the week)."
                                     )
 
-    group.add_option('--start-date', dest="start_date", default=None,
+    group.add_option('--start-date', dest="start_date", default=defaults['start-date'],
                  help="date where to start analyze and record")
-    group.add_option('--end-date', dest="end_date", default=None,
+    group.add_option('--end-date', dest="end_date", default=defaults['end-date'],
                  help="date where to end analyze and record")
-    group.add_option('--skip-day', dest="skip_days", default=[], action="append",
+    group.add_option('--skip-day', dest="skip_days", default=[], action="append", metavar="SKIP_DAY",
                  help="A regexp of a whole day or a set of dates to be ignored. Can be called multiple times")
     p.add_option_group(group)
 
@@ -379,17 +409,39 @@ if __name__ == '__main__':
                                     "hh:mm, like \"09:21:30\" or \"09:21\".\n"
                                     "Those filter are used for skip record that are registered \"too late at night\" "
                                     "or \"too early in the morning\".")
-    group.add_option('--skip-timeperiod-start', dest="skip_time_start", default=None,
+    group.add_option('--skip-timeperiod-start', dest="skip_time_start", default=defaults['skip-timeperiod-start'],
                  help="do not analyse records before the given time")
-    group.add_option('--skip-timeperiod-end', dest="skip_time_end", default=None,
+    group.add_option('--skip-timeperiod-end', dest="skip_time_end", default=defaults['skip-timeperiod-end'],
                  help="do not analyse records later the given time")
     p.add_option_group(group)
 
-    args = sys.argv[1:]
+    group = optparse.OptionGroup(p, "Default configuration profiles",
+                                    "You can read a set of default configuration options from a \".tinylogan\" file "
+                                    "placed in the user's home directory.\n"
+                                    "If this file is found, parameters from the \"DEFAULT\" section are read, but you "
+                                    "can also add other sections.\n"
+                                    "You can always override those options from the command line."
+                                    )
+    # All foo are ignored, we read them before the args parsing take place
+    # We still need them for documentation and for evade parsing errors 
+    group.add_option('-c', dest="foo", default='default', metavar="PROFILE",
+                 help="read a different profile section than DEFAULT")
+    group.add_option('-U', dest="foo", default=False, action="store_true",
+                 help="Ignore the user default profile file (if exists)")
+    group.add_option('--example-profile', dest="example_profile", default=False, action="store_true",
+                 help="Print to the standard output an example profile file, then exit. "
+                      "You can put this output in a \".tinylogan\" file in your home, then customize it")
+
+    p.add_option_group(group)
+
     options, arguments = p.parse_args(args)
 
     if options.help or not arguments:
         p.print_help()
+        sys.exit(0)
+
+    if options.example_profile:
+        print "TODO"
         sys.exit(0)
 
     try:

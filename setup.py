@@ -7,7 +7,7 @@ setup(name='TinyLogAnalyzer',
       # py_modules=['tinylogan',],
       scripts=['src/tinylogan',],
       version="0.4.0",
-      description="Simple bash utility for analyze HTTP access log with enabled response time",
+      description="Command line utility for perform response time analysis onto HTTP access logs",
       long_description=open("README.txt").read() + "\n" +
                        open(os.path.join("docs", "HISTORY.txt")).read(),
       classifiers=["Development Status :: 3 - Alpha",
