@@ -10,6 +10,8 @@ import optparse
 import logging
 import os.path
 
+import ConfigParser
+
 from datetime import datetime, date, time, timedelta
 
 # greedy
@@ -20,8 +22,6 @@ logLine = re.compile(PATTERN, re.I)
 
 DAY_PATTERN = r"""^(?P<day>today|yesterday|tomorrow|week|month|year)(?:(?P<modifier>\+|\-)(?P<qty>\d+))?$"""
 dateControl = re.compile(DAY_PATTERN, re.I)
-
-RECORD_TO_KEEP = 50
 
 version = "0.4.0"
 description = "Simple bash utility for analyze HTTP access log with enabled response time"
@@ -93,21 +93,29 @@ def parseTime(st):
     return time(int(hh), int(mm), int(ss))
 
 
-def reduceTime(seconds, td_diff, skip_time_start, skip_time_end):
+def reduceTime(seconds, td_diff, skip_time_start, skip_time_end, days_skipped):
     if td_diff.days > 0:
         if skip_time_start:
-            t = parseTime(skip_time_start)
-            amount = t.hour * 3600
-            amount += t.minute * 60
-            amount += t.second
-            seconds -= amount * td_diff.days
+            t1 = parseTime(skip_time_start)
+            amount1 = t1.hour * 3600
+            amount1 += t1.minute * 60
+            amount1 += t1.second
+            seconds -= amount1 * td_diff.days
         if skip_time_end:
-            t = parseTime(skip_time_end)
-            amount = (24 - t.hour) * 3600
+            t2 = parseTime(skip_time_end)
+            amount2 = (24 - t2.hour) * 3600
             # let's REMOVE minutes and seconds
-            amount -= t.minute * 60
-            amount -= t.second
-            seconds -= amount * td_diff.days
+            amount2 -= t2.minute * 60
+            amount2 -= t2.second
+            seconds -= amount2 * td_diff.days
+        if days_skipped:
+            seconds -= (24 * 3600) * days_skipped
+            # I already reduced the total for filter like skip_time_start and
+            # skip_time_end, so... now I need to re-add them
+            if skip_time_start:
+                seconds += amount1 * days_skipped
+            if skip_time_end:
+                seconds += amount2 * days_skipped                
     return seconds
 
 
@@ -122,6 +130,7 @@ def main(options, logfile):
     topAverage = []
     lastProcessedDate = None
     lastProcessedTime = None
+    days_skipped = 0
 
     first = True
     parsingStart = datetime.now()
@@ -186,24 +195,21 @@ def main(options, logfile):
             if stop:
                 continue
 
-            if lineData.get('date') != lastProcessedDate:
-                lastProcessedDate = lineData.get('date')
-                lastProcessedTime = lineData.get('time')
-                # day filter: first time only for printing
-                stop = False
-                for dreg in options.skip_days:
-                    if re.match(dreg, lastProcessedDate):
-                        stop = True
-                if stop:
-                    logger.debug("Skipping day %s due to filters" % lastProcessedDate)
-                    continue
-                logger.debug("...now analyzing %s" % lineData.get('date'))
-
             # day filter: other times in the same day
             stop = False
             for dreg in options.skip_days:
-                if re.match(dreg, lastProcessedDate):
+                if re.match(dreg, lineData.get('date')):
                     stop = True
+                    if lastProcessedDate and lineData.get('date') != lastProcessedDate:
+                        logger.debug("Skipping day %s due to filters" % lineData.get('date'))
+                        days_skipped += 1
+
+            if lastProcessedDate and lineData.get('date') != lastProcessedDate and not stop:
+                logger.debug("...now analyzing %s" % lineData.get('date'))
+
+            lastProcessedDate = lineData.get('date')
+            lastProcessedTime = lineData.get('time')
+
             if stop:
                 continue
 
@@ -277,8 +283,8 @@ def main(options, logfile):
     diff_seconds = (td_diff.microseconds + (td_diff.seconds + td_diff.days * 24 * 3600) * 10 ** 6) / 10 ** 6
 
     # if I use skip-timeperiod_start/end I need to remove values from this list
-    if options.skip_time_start or options.skip_time_end:
-        diff_seconds = reduceTime(diff_seconds, td_diff, options.skip_time_start, options.skip_time_end)
+    if options.skip_time_start or options.skip_time_end or options.skip_days:
+        diff_seconds = reduceTime(diff_seconds, td_diff, options.skip_time_start, options.skip_time_end, days_skipped)
         print "Timedelta is %s (but only %s are counted due to time bounds)" % (td_diff, timedelta(seconds=diff_seconds))
     else:
         print "Timedelta is %s (%s seconds)" % (td_diff, diff_seconds)
@@ -311,13 +317,28 @@ def main(options, logfile):
 
 if __name__ == '__main__':
 
+    # Load user default settings
+    defaults = {'size': 50, 'min-time': 0, 'max-time': 0, 'min-times': 0,
+                'start-date': None, 'end-date': None, 'skip-time-start': None,
+                'skip-time-end': None}
+    if os.path.exists(os.path.join(HOME, '.tinylogan')):
+        cfile = open(os.path.join(HOME, '.tinylogan'), 'r')
+        config = ConfigParser.SafeConfigParser()
+        config.readfp(cfile)
+        cfile.close()
+
+        for param in ('size', 'min-time', 'max-time', 'min-times', 'start-date', 'end-date', 'skip-time-start', 'skip-time-end'):
+            # now override options
+            if config.has_option("tinylogan", param):
+                defaults[param] = config.getint("tinylogan", param)
+ 
     usage = "usage: %prog [options] logfile"
     p = optparse.OptionParser(usage=usage, version="%prog " + version, description=description,
                               prog="tinylogan")
     p.remove_option("--help")
     p.add_option('--help', '-h', action="store_true", default=False, help='show this help message and exit')
     p.add_option('--verbose', '-v', action="count", default=0, help='verbose output during log analysis')
-    p.add_option('--size', '-s', type="int", dest="size", default=RECORD_TO_KEEP,
+    p.add_option('--size', '-s', type="int", dest="size", default=defaults['size'],
                  help="choose the number of record to store in every log")
     p.add_option('--keep-query', '-q', dest="keep_querystring", default=False, action="store_true",
                  help="keep query strings in URLs instead of cutting them. "
@@ -326,11 +347,11 @@ if __name__ == '__main__':
                  help="a regexp expression that all URLs must match of will be discarded. Can be called multiple times")
     p.add_option('--exclude', '-e', dest="excludes", default=[], action="append", metavar="EXCLUDE_REGEX",
                  help="a regexp expression that all URLs must not match of will be discarded. Can be called multiple times")
-    p.add_option('--min-time', type="int", dest="min_time", default=0, metavar="MIN_TIME_MILLIS",
+    p.add_option('--min-time', type="int", dest="min_time", default=defaults['min-time'], metavar="MIN_TIME_MILLIS",
                  help="ignore all entries that require less than this amount of millisecs")
-    p.add_option('--max-time', type="int", dest="max_time", default=0, metavar="MAX_TIME_MILLIS",
+    p.add_option('--max-time', type="int", dest="max_time", default=defaults['max-time'], metavar="MAX_TIME_MILLIS",
                  help="ignore all entries that require more than this amount of millisecs")
-    p.add_option('--min-times', type="int", dest="min_times", default=0, metavar="MIN_TIMES",
+    p.add_option('--min-times', type="int", dest="min_times", default=defaults['min-times'], metavar="MIN_TIMES",
                  help="set a minimum number of times that a entry must be found to be used in the \"Top average time\" statistic")
 
     group = optparse.OptionGroup(p, "Date filters",
@@ -350,7 +371,7 @@ if __name__ == '__main__':
     group.add_option('--end-date', dest="end_date", default=None,
                  help="date where to end analyze and record")
     group.add_option('--skip-day', dest="skip_days", default=[], action="append",
-                 help="A regexp of a whole day or a set or date to be ignored. Can be called multiple times")
+                 help="A regexp of a whole day or a set of dates to be ignored. Can be called multiple times")
     p.add_option_group(group)
 
     group = optparse.OptionGroup(p, "Time filters",
