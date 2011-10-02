@@ -165,7 +165,8 @@ Let's details::
 TODO
 ====
 
-* default ``.tinylogan`` file in users home folder, with default options
 * a way to ignore min and max values from multiple occurrences of a match
 * right now all records are stored in memory... obviously this is not the way to
   parse a potentially multiple-gigabyte-long-file
+* a way to recognize default views (like: that ``foo/other_foo`` is the same as
+  ``foo/other_foo/index.html``)

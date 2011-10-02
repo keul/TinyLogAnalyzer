@@ -200,10 +200,10 @@ def main(options, logfile):
             # day filter: other times in the same day
             stop = False
             for dreg in options.skip_days:
-                if re.match(dreg, lineData.get('date')):
+                if re.search(dreg, lineData.get('date')) is not None:
                     stop = True
                     if lastProcessedDate and lineData.get('date') != lastProcessedDate:
-                        logger.debug("Skipping day %s due to filters" % lineData.get('date'))
+                        logger.debug("Skipping %s due to filters" % lineData.get('date'))
                         days_skipped += 1
 
             if lastProcessedDate and lineData.get('date') != lastProcessedDate and not stop:
@@ -324,7 +324,7 @@ if __name__ == '__main__':
     defaults = {'size': 50, 'keep-query': False, 'min-time': 0, 'max-time': 0, 'min-times': 0,
                 'start-date': None, 'end-date': None, 'skip-time-start': None, 'skip-time-end': None,
                 'skip-timeperiod-start' : None, 'skip-timeperiod-end': None,
-                'includes': [], 
+                'includes': [], 'excludes': [], 'skip-days': [],
                 }
 
     # Load user default settings
@@ -356,7 +356,7 @@ if __name__ == '__main__':
             if config.has_option(config_profile, param):
                 defaults[param] = config.get(config_profile, param)
         # multis
-        for param in ('includes', ):
+        for param in ('includes', 'excludes', 'skip-days'):
             if config.has_option(config_profile, param):
                 defaults[param] = [x.strip() for x in config.get(config_profile, param).splitlines() if x]
  
@@ -374,9 +374,11 @@ if __name__ == '__main__':
     p.add_option('--include', '-i', dest="includes", default=defaults['includes'], action="append", metavar="INCLUDE_REGEX",
                  help="a regexp expression that an URLs must match of will be discarded. "
                       "Can be called multiple times, expanding the set")
-    p.add_option('--exclude', '-e', dest="excludes", default=[], action="append", metavar="EXCLUDE_REGEX",
+    p.add_option('--exclude', '-e', dest="excludes", default=defaults['excludes'], action="append", metavar="EXCLUDE_REGEX",
                  help="a regexp expression that an URLs must not match of will be discarded. "
                       "Can be called multiple times, reducing the set")
+    p.add_option('--skip-day', dest="skip_days", default=defaults['skip-days'], action="append", metavar="SKIP_DAY",
+                 help="A regexp that repr specific whole day or a set of dates that must be ignored. Can be called multiple times")
     p.add_option('--min-time', type="int", dest="min_time", default=defaults['min-time'], metavar="MIN_TIME_MILLIS",
                  help="ignore all entries that require less than this amount of millisecs")
     p.add_option('--max-time', type="int", dest="max_time", default=defaults['max-time'], metavar="MAX_TIME_MILLIS",
@@ -400,8 +402,6 @@ if __name__ == '__main__':
                  help="date where to start analyze and record")
     group.add_option('--end-date', dest="end_date", default=defaults['end-date'],
                  help="date where to end analyze and record")
-    group.add_option('--skip-day', dest="skip_days", default=[], action="append", metavar="SKIP_DAY",
-                 help="A regexp of a whole day or a set of dates to be ignored. Can be called multiple times")
     p.add_option_group(group)
 
     group = optparse.OptionGroup(p, "Time filters",
@@ -422,14 +422,14 @@ if __name__ == '__main__':
                                     "can also add other sections.\n"
                                     "You can always override those options from the command line."
                                     )
-    # All foo are ignored, we read them before the args parsing take place
-    # We still need them for documentation and for evade parsing errors 
+    # All foos below are ignored, we read them before the args parsing take place
+    # We still need them for documentation and for evade argparse errors 
     group.add_option('-c', dest="foo", default='default', metavar="PROFILE",
                  help="read a different profile section than DEFAULT")
     group.add_option('-U', dest="foo", default=False, action="store_true",
                  help="Ignore the user default profile file (if exists)")
     group.add_option('--example-profile', dest="example_profile", default=False, action="store_true",
-                 help="Print to the standard output an example profile file, then exit. "
+                 help="Print out an example profile file, then exit. "
                       "You can put this output in a \".tinylogan\" file in your home, then customize it")
 
     p.add_option_group(group)
@@ -441,7 +441,8 @@ if __name__ == '__main__':
         sys.exit(0)
 
     if options.example_profile:
-        print "TODO"
+        default_path = os.path.dirname(__file__)
+        # TODO
         sys.exit(0)
 
     try:
