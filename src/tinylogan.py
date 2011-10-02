@@ -119,7 +119,7 @@ def reduceTime(seconds, td_diff, skip_time_start, skip_time_end, days_skipped):
     return seconds
 
 
-def main(options, logfile):
+def analyze(options, logfile):
     log = open(logfile)
     
     if options.verbose:
@@ -317,8 +317,8 @@ def main(options, logfile):
                           float(x['average']) / (10 ** 6) * x['times'],
                           )
 
-if __name__ == '__main__':
 
+def main():
     args = sys.argv[1:]
 
     defaults = {'size': 50, 'keep-query': False, 'min-time': 0, 'max-time': 0, 'min-times': 0,
@@ -436,17 +436,23 @@ if __name__ == '__main__':
 
     options, arguments = p.parse_args(args)
 
+    if options.example_profile:
+        default_path = os.path.dirname(__file__)
+        f = open(os.path.join(default_path, 'example_profile.cfg'))
+        print '\n'
+        print f.read()
+        f.close()
+        sys.exit(0)
+
     if options.help or not arguments:
         p.print_help()
         sys.exit(0)
 
-    if options.example_profile:
-        default_path = os.path.dirname(__file__)
-        # TODO
-        sys.exit(0)
-
     try:
-        main(options, arguments[0])
+        analyze(options, arguments[0])
     except KeyboardInterrupt:
         print "Stopped by user action"
         sys.exit(1)
+
+if __name__ == '__main__':
+    main()
