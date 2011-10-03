@@ -4,7 +4,6 @@ from setuptools import setup, find_packages
 import sys, os
 
 setup(name='TinyLogAnalyzer',
-      py_modules=['tinylogan',],
       # scripts=['src/tinylogan',],
       version="0.4.0",
       description="Command line utility for perform response time analysis onto HTTP access logs",
@@ -19,19 +18,22 @@ setup(name='TinyLogAnalyzer',
                    "Topic :: Internet :: Log Analysis",
                    "Topic :: Internet :: WWW/HTTP",
                    ], # Get strings from http://pypi.python.org/pypi?%3Aaction=list_classifiers
-      keywords='file apache log analyser http access',
+      keywords='file apache log response-time analyser http access',
       author='keul',
       author_email='luca@keul.it',
       url='https://kpython-utils.svn.sourceforge.net/svnroot/kpython-utils/TinyLogAnalyzer/',
       license='GPL',
-      packages=find_packages('src', exclude=['ez_setup', 'examples', 'tests']),
-      package_dir = {'tinylogan':'src'},
+      # packages=find_packages('src', exclude=['ez_setup',]),
+      py_modules=['tinylogan',],
+      package_dir = {'': 'src'},
       include_package_data=True,
+      #package_data={'': ['example_profile.cfg', ]},
+      data_files=[('profiles', ['src/example_profile.cfg'])],
       zip_safe=False,
       install_requires=[
           'setuptools'
           # -*- Extra requirements: -*-
       ],
-      entry_points={'console_scripts': ['tinylogan = tinylogan.tinylogan:main', ]}
+      entry_points={'console_scripts': ['tinylogan = tinylogan:main', ]}
       )
 

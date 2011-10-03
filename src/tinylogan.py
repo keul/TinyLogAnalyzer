@@ -438,7 +438,12 @@ def main():
 
     if options.example_profile:
         default_path = os.path.dirname(__file__)
-        f = open(os.path.join(default_path, 'example_profile.cfg'))
+        try:
+            # will not fail only when callind the .py file directly
+            f = open(os.path.join(default_path, 'example_profile.cfg'))
+        except IOError:
+            # distirbuted version
+            f = open(os.path.join(default_path, 'profiles', 'example_profile.cfg'))
         print '\n'
         print f.read()
         f.close()

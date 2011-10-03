@@ -170,3 +170,5 @@ TODO
   parse a potentially multiple-gigabyte-long-file
 * a way to recognize default views (like: that ``foo/other_foo`` is the same as
   ``foo/other_foo/index.html``)
+* right now the log is read from the first line. In this way reaching a far-from-first
+  date when using the ``--start-date`` is used can be *really* slow

@@ -16,7 +16,7 @@ Changelog
 * added quantity modifiers to date filters
 * fixed documentation help
 * added the new ``skip-day`` filter
-* implemented users default profiles and added related options -- TODO --
+* implemented users default profiles and added related options
 * do not continue log analysis when the ``--end-date`` is found
 * the ``--include`` option was buggy. Now using it more than once will
   include additional URLs to the set
