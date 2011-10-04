@@ -33,6 +33,7 @@ logging.basicConfig(level=logging.INFO)
 
 HOME = os.path.expanduser('~')
 
+
 def numeric_compare_total(x, y):
     return x['micros'] - y['micros']
 
@@ -71,11 +72,11 @@ def parseDate(st):
             resDate -= timedelta(resDate.weekday())
         elif base == 'month':
             resDate = date.today()
-            resDate -= timedelta(resDate.day-1)
+            resDate -= timedelta(resDate.day - 1)
         # now modifiers (optional)
         if modifier and qty:
             qty = int(qty)
-            if modifier=='+':
+            if modifier == '+':
                 resDate += timedelta(qty)
             else:
                 resDate -= timedelta(qty)
@@ -115,13 +116,13 @@ def reduceTime(seconds, td_diff, skip_time_start, skip_time_end, days_skipped):
             if skip_time_start:
                 seconds += amount1 * days_skipped
             if skip_time_end:
-                seconds += amount2 * days_skipped                
+                seconds += amount2 * days_skipped
     return seconds
 
 
 def analyze(options, logfile):
     log = open(logfile)
-    
+
     if options.verbose:
         logger.setLevel(logging.DEBUG)
 
@@ -137,7 +138,7 @@ def analyze(options, logfile):
     cnt = 0
     try:
         for l in log:
-            cnt+=1
+            cnt += 1
             matches = logLine.match(l)
             if matches is None:
                 logger.warn("Line %d doesn't match the required format\n%s" % (cnt, l))
@@ -248,7 +249,7 @@ def analyze(options, logfile):
         print "\nEnough... stopped by user action"
     except:
         logger.exception("Error parsing log at line %d\n%s" % (cnt, l))
-        raise 
+        raise
 
     # ******* now collect statistical data *******
     for m, record in registry.items():
@@ -323,7 +324,7 @@ def main():
 
     defaults = {'size': 50, 'keep-query': False, 'min-time': 0, 'max-time': 0, 'min-times': 0,
                 'start-date': None, 'end-date': None, 'skip-time-start': None, 'skip-time-end': None,
-                'skip-timeperiod-start' : None, 'skip-timeperiod-end': None,
+                'skip-timeperiod-start': None, 'skip-timeperiod-end': None,
                 'includes': [], 'excludes': [], 'skip-days': [],
                 }
 
@@ -336,7 +337,7 @@ def main():
 
         # I need to fake-read the argument -c now
         if '-c' in args:
-            config_profile = args[args.index('-c')+1]
+            config_profile = args[args.index('-c') + 1]
             if not config.has_section(config_profile):
                 print 'Section "%s" not found in %s' % (config_profile, os.path.join(HOME, '.tinylogan'))
                 sys.exit(1)
@@ -350,7 +351,7 @@ def main():
         # boolean
         for param in ('keep-query', ):
             if config.has_option(config_profile, param):
-                defaults[param] = config.getboolean(config_profile, param)            
+                defaults[param] = config.getboolean(config_profile, param)
         # strings
         for param in ('start-date', 'end-date', 'skip-timeperiod-start', 'skip-timeperiod-end', ):
             if config.has_option(config_profile, param):
@@ -359,7 +360,7 @@ def main():
         for param in ('includes', 'excludes', 'skip-days'):
             if config.has_option(config_profile, param):
                 defaults[param] = [x.strip() for x in config.get(config_profile, param).splitlines() if x]
- 
+
     usage = "usage: %prog [options] logfile"
     p = optparse.OptionParser(usage=usage, version="%prog " + version, description=description,
                               prog="tinylogan")
@@ -423,7 +424,7 @@ def main():
                                     "You can always override those options from the command line."
                                     )
     # All foos below are ignored, we read them before the args parsing take place
-    # We still need them for documentation and for evade argparse errors 
+    # We still need them for documentation and for evade argparse errors
     group.add_option('-c', dest="foo", default='default', metavar="PROFILE",
                  help="read a different profile section than DEFAULT")
     group.add_option('-U', dest="foo", default=False, action="store_true",
@@ -439,11 +440,11 @@ def main():
     if options.example_profile:
         default_path = os.path.dirname(__file__)
         try:
-            # will not fail only when callind the .py file directly
-            f = open(os.path.join(default_path, 'example_profile.cfg'))
-        except IOError:
-            # distirbuted version
+            # distributed version
             f = open(os.path.join(default_path, 'profiles', 'example_profile.cfg'))
+        except IOError:
+            # will not fail only when calling the .py file directly
+            f = open(os.path.join(default_path, 'example_profile.cfg'))
         print '\n'
         print f.read()
         f.close()

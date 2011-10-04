@@ -32,7 +32,7 @@ __ http://httpd.apache.org/docs/
 How to use
 ==========
 
-Here the complete guide::
+Here the complete help::
 
     Usage: tinylogan [options] logfile
     
@@ -47,11 +47,16 @@ Here the complete guide::
                             Using this an URL with different query string is treat
                             like different URLs.
       -i INCLUDE_REGEX, --include=INCLUDE_REGEX
-                            a regexp expression that all URLs must match of will
-                            be discarded. Can be called multiple times
+                            a regexp expression that an URLs must match of will be
+                            discarded. Can be called multiple times, expanding the
+                            set
       -e EXCLUDE_REGEX, --exclude=EXCLUDE_REGEX
-                            a regexp expression that all URLs must not match of
-                            will be discarded. Can be called multiple times
+                            a regexp expression that an URLs must not match of
+                            will be discarded. Can be called multiple times,
+                            reducing the set
+      --skip-day=SKIP_DAY   A regexp that repr specific whole day or a set of
+                            dates that must be ignored. Can be called multiple
+                            times
       --min-time=MIN_TIME_MILLIS
                             ignore all entries that require less than this amount
                             of millisecs
@@ -61,10 +66,6 @@ Here the complete guide::
       --min-times=MIN_TIMES
                             set a minimum number of times that a entry must be
                             found to be used in the "Top average time" statistic
-      --skip-timeperiod-start=SKIP_TIME_START
-                            do not analyse records before the given time
-      --skip-timeperiod-end=SKIP_TIME_END
-                            do not analyse records later the given time
     
       Date filters:
         For those kind of filters you need to specify a date. You are free to
@@ -73,7 +74,7 @@ Here the complete guide::
         "tomorrow", "week" and "month". Use of "week" and "month" mean
         referring to first day of the current week or month. You can also
         provide a numerical modifier using "+" or "-" followed by a day
-        quantity (example: "week-5" for going back of 5 days from the begin of
+        quantity (example: "week-5" for going back of 5 days from the start of
         the week).
     
         --start-date=START_DATE
@@ -86,6 +87,27 @@ Here the complete guide::
         simply hh:mm, like "09:21:30" or "09:21". Those filter are used for
         skip record that are registered "too late at night" or "too early in
         the morning".
+    
+        --skip-timeperiod-start=SKIP_TIME_START
+                            do not analyse records before the given time
+        --skip-timeperiod-end=SKIP_TIME_END
+                            do not analyse records later the given time
+    
+      Default configuration profiles:
+        You can read a set of default configuration options from a
+        ".tinylogan" file placed in the user's home directory. If this file is
+        found, parameters from the "DEFAULT" section are read, but you can
+        also add other sections. You can always override those options from
+        the command line.
+    
+        -c PROFILE          read a different profile section than DEFAULT
+        -U                  Ignore the user default profile file (if exists)
+        --example-profile   Print out an example profile file, then exit. You can
+                            put this output in a ".tinylogan" file in your home,
+                            then customize it
+
+You can also configure your defaults values in a ``.tinylogan`` config file
+placed in your user's home. Read help above for details.
 
 Results
 =======
@@ -171,4 +193,4 @@ TODO
 * a way to recognize default views (like: that ``foo/other_foo`` is the same as
   ``foo/other_foo/index.html``)
 * right now the log is read from the first line. In this way reaching a far-from-first
-  date when using the ``--start-date`` is used can be *really* slow
+  entry, when using the ``--start-date`` is used, can be *really* slow
