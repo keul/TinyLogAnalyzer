@@ -195,4 +195,5 @@ TODO
 * right now the log is read from the first line. In this way reaching a far-from-first
   entry, when using the ``--start-date`` is used, can be *really* slow
 * a way to skip weekday(s)
+* make the log entry regex configurable
 
