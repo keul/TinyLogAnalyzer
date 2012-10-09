@@ -327,7 +327,7 @@ def analyze(options, logfile):
 def main():
     args = sys.argv[1:]
 
-    defaults = {'size': 50, 'keep-query': False, 'min-time': 0, 'max-time': 0, 'min-times': 0,
+    defaults = {'size': 50, 'keep-query': False, 'min-time': 0, 'max-time': 0, 'min-times': 0, 'methods': [],
                 'start-date': None, 'end-date': None, 'skip-time-start': None, 'skip-time-end': None,
                 'skip-timeperiod-start': None, 'skip-timeperiod-end': None,
                 'includes': [], 'excludes': [], 'skip-days': [],
@@ -362,7 +362,7 @@ def main():
             if config.has_option(config_profile, param):
                 defaults[param] = config.get(config_profile, param)
         # multis
-        for param in ('includes', 'excludes', 'skip-days'):
+        for param in ('includes', 'excludes', 'skip-days', 'methods'):
             if config.has_option(config_profile, param):
                 defaults[param] = [x.strip() for x in config.get(config_profile, param).splitlines() if x]
 
@@ -391,7 +391,7 @@ def main():
                  help="ignore all entries that require more than this amount of millisecs")
     p.add_option('--min-times', type="int", dest="min_times", default=defaults['min-times'], metavar="MIN_TIMES",
                  help="set a minimum number of times that a entry must be found to be used in the \"Top average time\" statistic")
-    p.add_option('--method', '-m', dest="methods", default=[], action="append", metavar="METHOD",
+    p.add_option('--method', '-m', dest="methods", default=defaults['methods'], action="append", metavar="METHOD",
                  help="Limit only to entries that use this HTTP method. Can be called multiple times, expanding the set. "
                       "Ignore the option to include all methods.")
 
