@@ -5,9 +5,9 @@ import sys, os
 
 setup(name='TinyLogAnalyzer',
       # scripts=['src/tinylogan',],
-      version="0.4.0",
+      version="0.5.0",
       description="Command line utility for perform response time analysis onto HTTP access logs",
-      long_description=open("README.txt").read() + "\n" +
+      long_description=open("README.rst").read() + "\n" +
                        open(os.path.join("docs", "HISTORY.txt")).read(),
       classifiers=["Development Status :: 4 - Beta",
                    "Intended Audience :: System Administrators",
@@ -21,7 +21,7 @@ setup(name='TinyLogAnalyzer',
       keywords='file apache log response-time analyser http access',
       author='keul',
       author_email='luca@keul.it',
-      url='https://kpython-utils.svn.sourceforge.net/svnroot/kpython-utils/TinyLogAnalyzer/',
+      url='https://github.com/keul/TinyLogAnalyzer',
       license='GPL',
       # packages=find_packages('src', exclude=['ez_setup',]),
       py_modules=['tinylogan',],

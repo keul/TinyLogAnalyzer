@@ -17,13 +17,13 @@ from datetime import datetime, date, time, timedelta
 # greedy
 #PATTERN = r"""[^[]*\[(?P<date>\d\d/\w*/\d{4})\:(?P<time>\d\d\:\d\d\:\d\d)[^[]*\] "(?:GET|POST) (?P<url>[^?]*)(?P<querystring>\?.*)? HTTP/.*" (?P<code>\d\d\d).*(?P<sec>\d+)/(?P<micros>\d+)"""
 # non-greedy
-PATTERN = r""".*?\[(?P<date>.*?)\:(?P<time>\d\d\:\d\d\:\d\d).*?\] "(?:GET|POST) (?P<url>.*?)(?P<querystring>\?.*?)? HTTP\/.*?" (?P<code>\d\d\d).*(?P<sec>\d+)\/(?P<micros>\d+)"""
+PATTERN = r""".*?\[(?P<date>.*?)\:(?P<time>\d\d\:\d\d\:\d\d).*?\] "(?P<method>\w+) (?P<url>.*?)(?P<querystring>\?.*?)? HTTP\/.*?" (?P<code>\d\d\d).*(?P<sec>\d+)\/(?P<micros>\d+)"""
 logLine = re.compile(PATTERN, re.I)
 
 DAY_PATTERN = r"""^(?P<day>today|yesterday|tomorrow|week|month|year)(?:(?P<modifier>\+|\-)(?P<qty>\d+))?$"""
 dateControl = re.compile(DAY_PATTERN, re.I)
 
-version = "0.4.0"
+version = "0.5.0"
 description = "Simple bash utility for analyze HTTP access log with enabled response time"
 
 MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
