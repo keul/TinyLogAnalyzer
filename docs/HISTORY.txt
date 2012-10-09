@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.5.0 (Unreleased)
+------------------
+
+* now supporting also other protocols, different from GET or POST only
+* added the ``--method`` option, to filter requests by HTTP method
+
 0.4.0 (2011-10-04)
 ------------------
 

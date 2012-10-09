@@ -66,6 +66,10 @@ Here the complete help::
       --min-times=MIN_TIMES
                             set a minimum number of times that a entry must be
                             found to be used in the "Top average time" statistic
+      -m METHOD, --method=METHOD
+                            Limit only to entries that use this HTTP method. Can
+                            be called multiple times, expanding the set. Ignore
+                            the option to include all methods.
     
       Date filters:
         For those kind of filters you need to specify a date. You are free to

@@ -198,6 +198,11 @@ def analyze(options, logfile):
             if stop:
                 continue
 
+            # filter HTTP methods
+            if options.methods:
+                if lineData['method'] not in options.methods:
+                    continue
+
             # day filter: other times in the same day
             stop = False
             for dreg in options.skip_days:
@@ -386,6 +391,9 @@ def main():
                  help="ignore all entries that require more than this amount of millisecs")
     p.add_option('--min-times', type="int", dest="min_times", default=defaults['min-times'], metavar="MIN_TIMES",
                  help="set a minimum number of times that a entry must be found to be used in the \"Top average time\" statistic")
+    p.add_option('--method', '-m', dest="methods", default=[], action="append", metavar="METHOD",
+                 help="Limit only to entries that use this HTTP method. Can be called multiple times, expanding the set. "
+                      "Ignore the option to include all methods.")
 
     group = optparse.OptionGroup(p, "Date filters",
                                     "For those kind of filters you need to specify a date.\n"
